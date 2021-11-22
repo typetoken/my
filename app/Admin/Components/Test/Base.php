@@ -138,7 +138,8 @@ abstract class Base extends Form
                 Log::channel('common')->info('权限问题');
                 return back('权限问题');
             }
-            chmod(storage_path('app/public') . '/doc/'. $pathName, 0777);
+            $a = chmod(storage_path('app/public') . '/doc/'. $pathName, 0777);
+            Log::channel('common')->info('权限: ' . $a);
             dump(5555555555555);
             dump(storage_path('app/public') . DIRECTORY_SEPARATOR . 'doc' . DIRECTORY_SEPARATOR . $pathName . DIRECTORY_SEPARATOR .'doc1.docx');
             $word->saveAs(storage_path('app/public') . DIRECTORY_SEPARATOR . 'doc' . DIRECTORY_SEPARATOR . $pathName . DIRECTORY_SEPARATOR .'doc1.docx');
