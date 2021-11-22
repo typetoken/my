@@ -6,6 +6,7 @@ use Encore\Admin\Widgets\Form;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\TemplateProcessor;
 
@@ -110,12 +111,12 @@ abstract class Base extends Form
 
         // word1
         $doc1 = storage_path('app/public') . '/' . $a[0];
-        $word = new TemplateProcessor($doc1);
         $doc2 = storage_path('app/public') . '/' . $a[1];
-        $word2 = new TemplateProcessor($doc2);
         dump($highestRow);
         // 获取excel文件的数据，$row=2代表从第二行开始获取数据
         for ($row = 2; $row <= $highestRow; $row++){
+            $word = new TemplateProcessor($doc1);
+            $word2 = new TemplateProcessor($doc2);
             dump($row);
             foreach ($elsxOneName as $k => $name) {
                 $value = $sheet->getCell($name . $row)->getValue();
@@ -134,6 +135,7 @@ abstract class Base extends Form
             dump(44444);
             $pathName = (int)$sheet->getCell('A' . $row)->getValue();
             if (!is_dir(storage_path('app/public') . '/doc/'. $pathName) && mkdir(storage_path('app/public') . '/doc/'. $pathName, 0777)) {
+                Log::channel('common')->info('权限问题');
                 return back('权限问题');
             }
             dump(5555555555555);
