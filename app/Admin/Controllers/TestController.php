@@ -33,4 +33,16 @@ class TestController extends AdminController
     }
 
 
+    public function down(Content $content)
+    {
+        $downPath = $_SERVER['HTTP_HOST'] . '/storage/down/doc.zip';
+
+        return $content
+            ->title('Dashboard')
+            ->description('Description...')
+            ->row('下载地址: <a href="/storage/down/doc.zip" target="view_window" >' . $downPath . '</a>')
+            ->row('请复制到另一个网页打开下载');
+    }
+
+
 }

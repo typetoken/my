@@ -15,4 +15,6 @@ Route::group([
 
     $router->any('/test', 'TestController@index');
 
+    $router->any('/down', 'TestController@down');
+
 });

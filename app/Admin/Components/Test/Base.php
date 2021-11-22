@@ -57,23 +57,64 @@ abstract class Base extends Form
         if (!$this->preHandle()) {
             return back();
         }
-        $a = $this->dataChange($keyValues);
+        $this->dataChange($keyValues);
+        $zip = new \ZipArchive();
 
-        dd($a);
+        $zipUrl = storage_path('app/public');
 
-        return back();
+        $file_name = $zipUrl . '/down/doc.zip';
+        if (file_exists($file_name)) {
+            unlink($file_name);
+        }
+        if (!is_dir($zipUrl . '/down')) {
+            mkdir($zipUrl . '/down', 0777, true);
+        }
+        if ($zip->open($file_name, \ZipArchive::CREATE) === TRUE) {
+            $this->addFileToZip($zipUrl . '/doc/', $zip); //调用方法，对要打包的根目录进行操作，并将ZipArchive的对象传递给方法
+            $zip->close(); //关闭处理的zip文件
+        }
 
+        return redirect('/admin/down');
     }
+
+
+    public function addFileToZip($path, $zip, $sub_dir = '') {
+        $handler = opendir($path); //打开当前文件夹由$path指定。
+        /*
+        循环的读取文件夹下的所有文件和文件夹
+        其中$filename = readdir($handler)是每次循环的时候将读取的文件名赋值给$filename，
+        为了不陷于死循环，所以还要让$filename !== false。
+        一定要用!==，因为如果某个文件名如果叫'0'，或者某些被系统认为是代表false，用!=就会停止循环
+        */
+        while (($filename = readdir($handler)) !== false) {
+            if ($filename != "." && $filename != "..") {//文件夹文件名字为'.'和‘..’，不要对他们进行操作
+                if (is_dir($path . $filename)) {// 如果读取的某个对象是文件夹，则递归
+                    $this->addFileToZip($path . "/" . $filename, $zip, $filename . '/');
+                } else { //将文件加入zip对象
+                    $zip->addFile($path . "/" . $filename, $sub_dir . $filename);
+                }
+            }
+        }
+        @closedir($path);
+    }
+
 
 
     public function dataChange($keyValues)
     {
+        // 源模板路径
         $a = [];
+        // 源模板名字
+        $fileNames = [];
+        // 所有上传图片名字
         $imageNames = [];
+
         foreach ($keyValues as $key => $v) {
             if ($v instanceof UploadedFile) {
-                $dataNewName = $key . '.' . request()->file($key)->getClientOriginalExtension();
+//                $dataNewName = $key . '.' . request()->file($key)->getClientOriginalExtension();
+                $dataNewName = request()->file($key)->getClientOriginalName();
                 $path = Storage::disk('admin')->putFileAs('files', $v, $dataNewName);
+                array_push($fileNames, $dataNewName);
                 array_push($a, $path);
             }
             if ($key == 'images') {
@@ -109,21 +150,24 @@ abstract class Base extends Form
             $elsxOneName[$name] = $str;
         }
 
+        // 删除掉doc
+        deldir(storage_path('app/public') . '/doc/');
+
         // word1
         $doc1 = storage_path('app/public') . '/' . $a[0];
         $doc2 = storage_path('app/public') . '/' . $a[1];
-        dump($highestRow);
+
         // 获取excel文件的数据，$row=2代表从第二行开始获取数据
         for ($row = 2; $row <= $highestRow; $row++){
             $word = new TemplateProcessor($doc1);
             $word2 = new TemplateProcessor($doc2);
-            dump($row);
+
             foreach ($elsxOneName as $k => $name) {
                 $value = $sheet->getCell($name . $row)->getValue();
                 $word->setValue($k, $value);
                 $word2->setValue($k, $value);
             }
-            dump(333333);
+
             $imagePath = storage_path('app/public') . DIRECTORY_SEPARATOR . 'images' . DIRECTORY_SEPARATOR;
             // 找当前此行的用户名字
             $username = $sheet->getCell($elsxOneName['姓名'] . $row)->getValue();
@@ -132,25 +176,20 @@ abstract class Base extends Form
                 $word->setImageValue('照片', ['path'=>$imagePath . $imageNames[$username], 'width' => 110, 'height' => 140, 'ratio' => false]);
                 $word2->setImageValue('照片', ['path'=>$imagePath . $imageNames[$username], 'width' => 110, 'height' => 140, 'ratio' => false]);
             }
-            dump(44444);
-            $pathName = (int)$sheet->getCell('A' . $row)->getValue();
-            dump(!is_dir(storage_path('app/public') . '/doc/'. $pathName));
-            dump(mkdir(storage_path('app/public') . '/doc/'. $pathName, 0777, true));
-            if (!is_dir(storage_path('app/public') . '/doc/'. $pathName) && mkdir(storage_path('app/public') . '/doc/'. $pathName, 0777, true)) {
-                Log::channel('common')->info('权限问题');
-                return back('权限问题');
+
+//            $pathName = (int)$sheet->getCell('A' . $row)->getValue();
+            $pathName = iconv('UTF-8','GBK',$username);
+
+            Log::channel('common')->info(file_exists(storage_path('app/public') . '/doc/'. $pathName));
+            if (!file_exists(storage_path('app/public') . '/doc/'. $pathName)) {
+                mkdir(storage_path('app/public') . '/doc/'. $pathName, 0777, true);
             }
-            $a = chmod(storage_path('app/public') . '/doc/'. $pathName, 0777);
-            Log::channel('common')->info('权限: ' . $a);
-            dump(5555555555555);
-            dump(storage_path('app/public') . DIRECTORY_SEPARATOR . 'doc' . DIRECTORY_SEPARATOR . $pathName . DIRECTORY_SEPARATOR .'doc1.docx');
-            $word->saveAs(storage_path('app/public') . DIRECTORY_SEPARATOR . 'doc' . DIRECTORY_SEPARATOR . $pathName . DIRECTORY_SEPARATOR .'doc1.docx');
-            $word2->saveAs(storage_path('app/public') . DIRECTORY_SEPARATOR . 'doc' . DIRECTORY_SEPARATOR . $pathName . DIRECTORY_SEPARATOR .'doc2.docx');
-            dump(666666);
+            chmod(storage_path('app/public') . '/doc/'. $pathName, 0777);
+
+            $word->saveAs(storage_path('app/public') . DIRECTORY_SEPARATOR . 'doc' . DIRECTORY_SEPARATOR . $pathName . DIRECTORY_SEPARATOR .$fileNames[0]);
+            $word2->saveAs(storage_path('app/public') . DIRECTORY_SEPARATOR . 'doc' . DIRECTORY_SEPARATOR . $pathName . DIRECTORY_SEPARATOR .$fileNames[1]);
 
         }
-
-        return 11111;
 
     }
 
