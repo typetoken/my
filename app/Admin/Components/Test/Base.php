@@ -178,8 +178,9 @@ abstract class Base extends Form
             }
 
 //            $pathName = (int)$sheet->getCell('A' . $row)->getValue();
-            $pathName = iconv('UTF-8','GBK',$username);
+//            $pathName = iconv('UTF-8','GBK',$username);
 
+            $pathName = $username;
             Log::channel('common')->info(file_exists(storage_path('app/public') . '/doc/'. $pathName));
             if (!file_exists(storage_path('app/public') . '/doc/'. $pathName)) {
                 mkdir(storage_path('app/public') . '/doc/'. $pathName, 0777, true);
