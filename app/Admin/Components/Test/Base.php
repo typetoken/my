@@ -134,7 +134,7 @@ abstract class Base extends Form
             }
             dump(44444);
             $pathName = (int)$sheet->getCell('A' . $row)->getValue();
-            if (!is_dir(storage_path('app/public') . '/doc/'. $pathName) && mkdir(storage_path('app/public') . '/doc/'. $pathName, 0777)) {
+            if (!is_dir(storage_path('app/public') . '/doc/'. $pathName) && mkdir(storage_path('app/public') . '/doc/'. $pathName, 0777, true)) {
                 Log::channel('common')->info('权限问题');
                 return back('权限问题');
             }
