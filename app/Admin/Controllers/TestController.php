@@ -15,7 +15,7 @@ class TestController extends AdminController
 
     public function __construct()
     {
-        $this->title = __('推荐关系图');
+        $this->title = __('工具');
     }
 
 
@@ -28,7 +28,7 @@ class TestController extends AdminController
 
 
         return $content
-            ->title(__('配置信息'))
+            ->title(__('工具'))
             ->body(Tab::forms($forms));
     }
 

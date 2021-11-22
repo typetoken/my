@@ -6,7 +6,7 @@ class Test extends Base
 {
     public function tabTitle()
     {
-        return __('U盾设置');
+        return __('word生成工具');
     }
 
     /**
