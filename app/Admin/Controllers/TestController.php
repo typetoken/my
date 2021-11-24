@@ -3,6 +3,7 @@
 namespace App\Admin\Controllers;
 
 use App\Admin\Components\Test\Test;
+use App\Admin\Components\Test\Word;
 use Encore\Admin\Controllers\AdminController;
 use Encore\Admin\Layout\Content;
 use Encore\Admin\Widgets\Tab;
@@ -23,6 +24,7 @@ class TestController extends AdminController
     {
         $forms = [
             'test'    => Test::class,
+            'word'    => Word::class,
         ];
 
 
@@ -35,12 +37,14 @@ class TestController extends AdminController
 
     public function down(Content $content)
     {
-        $downPath = $_SERVER['HTTP_HOST'] . '/storage/down/doc.zip';
+        $path = '/storage' . $_GET['path'];
+
+        $downPath = $_SERVER['HTTP_HOST'] . $path;
 
         return $content
             ->title('Dashboard')
             ->description('Description...')
-            ->row('下载地址: <a href="/storage/down/doc.zip" target="view_window" >' . $downPath . '</a>')
+            ->row('下载地址: <a href="'. $path .'"  target="view_window" >' . $downPath . '</a>')
             ->row('请复制到另一个网页打开下载');
     }
 

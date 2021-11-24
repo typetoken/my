@@ -3,11 +3,13 @@
 namespace App\Admin\Components\Test;
 
 use Encore\Admin\Widgets\Form;
+use Grafika\Grafika;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\TemplateProcessor;
 
 abstract class Base extends Form
@@ -57,12 +59,18 @@ abstract class Base extends Form
         if (!$this->preHandle()) {
             return back();
         }
-        $this->dataChange($keyValues);
+
+        // word文档合成
+        if (isset($keyValues['word_compound'])) {
+            $resPath = $this->imageCompoundWord($keyValues);
+        }else {
+            $resPath = $this->dataChange($keyValues);
+        }
         $zip = new \ZipArchive();
 
         $zipUrl = storage_path('app/public');
 
-        $file_name = $zipUrl . '/down/doc.zip';
+        $file_name = $zipUrl . $resPath;
         if (file_exists($file_name)) {
             unlink($file_name);
         }
@@ -70,14 +78,20 @@ abstract class Base extends Form
             mkdir($zipUrl . '/down', 0777, true);
         }
         if ($zip->open($file_name, \ZipArchive::CREATE) === TRUE) {
-            $this->addFileToZip($zipUrl . '/doc/', $zip); //调用方法，对要打包的根目录进行操作，并将ZipArchive的对象传递给方法
+            $this->addFileToZip(explode('.', $file_name)[0], $zip); //调用方法，对要打包的根目录进行操作，并将ZipArchive的对象传递给方法
             $zip->close(); //关闭处理的zip文件
         }
 
-        return redirect('/admin/down');
+        return redirect('/admin/down?path=' . $resPath);
     }
 
 
+    /**
+     * 将文件生成压缩文件
+     * @param $path
+     * @param $zip
+     * @param string $sub_dir
+     */
     public function addFileToZip($path, $zip, $sub_dir = '') {
         $handler = opendir($path); //打开当前文件夹由$path指定。
         /*
@@ -99,7 +113,15 @@ abstract class Base extends Form
     }
 
 
-
+    /**
+     * 将execl表生成多个word文档
+     * @param $keyValues
+     * @return string
+     * @throws \PHPExcel_Exception
+     * @throws \PHPExcel_Reader_Exception
+     * @throws \PhpOffice\PhpWord\Exception\CopyFileException
+     * @throws \PhpOffice\PhpWord\Exception\CreateTemporaryFileException
+     */
     public function dataChange($keyValues)
     {
         // 源模板路径
@@ -192,6 +214,113 @@ abstract class Base extends Form
 
         }
 
+        return '/down/doc.zip';
+
+    }
+
+
+    public function imageCompoundWord($keyValues)
+    {
+        // 处理数据
+        $coord = explode(',', $keyValues['lon_lat']);
+        $width = $coord[0] ?? 0;
+        $height = $coord[1] ?? 0;
+
+        $images = [];
+        // 插入图片处理
+        $ext = request()->file('image_template')->getClientOriginalExtension();
+        $dataNewName = request()->file('image_template')->getClientOriginalName();
+        $imageName = explode('.', $dataNewName)[0];
+        $path = Storage::disk('admin')->putFileAs('images/' . $imageName, $keyValues['image_template'], $dataNewName);
+
+        $spath = storage_path('app/public');
+
+        // 图片旋转处理
+        switch ($ext) {
+            case 'jpeg':
+                $source = imagecreatefromjpeg($spath . '/' . $path);
+
+                // 生成新图
+                for ($i = 0; $i < 30; $i++) {
+                    // 获取旋转度数
+                    $degrees = $i * 2;
+                    $degrees1 = 360 - $degrees;
+                    // 旋转
+                    $rotate = imagerotate($source, $degrees, imageColorAllocateAlpha($source, 255, 255, 255, 127));
+                    $rotate1 = imagerotate($source, $degrees1, imageColorAllocateAlpha($source, 255, 255, 255, 127));
+
+                    $newPath = $spath . '/images/' . $imageName . '/' . $imageName . $degrees . '.' . $ext;
+                    $newPath1 = $spath . '/images/' . $imageName . '/' . $imageName . $degrees1 . '.' . $ext;
+                    // 生成新图
+                    imagejpeg($rotate, $newPath);
+                    imagejpeg($rotate1, $newPath1);
+                    array_push($images, $newPath);
+                    array_push($images, $newPath1);
+                }
+
+                break;
+            case 'png':
+                $source = imagecreatefrompng($spath . '/' . $path);
+
+                // 生成新图
+                for ($i = 0; $i < 30; $i++) {
+                    // 获取旋转度数
+                    $degrees = $i * 2;
+                    $degrees1 = 360 - $degrees;
+                    // 旋转
+                    $rotate = imagerotate($source, $degrees, imageColorAllocateAlpha($source, 255, 255, 255, 127));
+                    $rotate1 = imagerotate($source, $degrees1, imageColorAllocateAlpha($source, 255, 255, 255, 127));
+
+                    $newPath = $spath . '/images/' . $imageName . '/' . $imageName . $degrees . '.' . $ext;
+                    $newPath1 = $spath . '/images/' . $imageName . '/' . $imageName . $degrees1 . '.' . $ext;
+                    // 生成新图
+                    imagepng($rotate, $newPath);
+                    imagepng($rotate1, $newPath1);
+                    array_push($images, $newPath);
+                    array_push($images, $newPath1);
+                }
+
+                break;
+            default:
+                Log::channel('common')->info('图片错误');
+                return back();
+        }
+
+        // 处理图片模板
+        foreach ($keyValues['words'] as $word) {
+            $name = $word->getClientOriginalName();
+            $imagePath = Storage::disk('admin')->putFileAs('words', $word, $name);
+            // 为每个模板图片在坐标位置左右  添加上插入图片  合成一张新图片
+
+
+            $width = mt_rand($width - 10, $width + 10);
+            $height = mt_rand($height - 3, $height + 5);
+
+            $this->imageEdit($spath . '/' . $imagePath, $images[array_rand($images)], $width, $height, $name);
+
+
+        }
+
+        return '/words/zip.zip';
+
+    }
+
+
+    public function imageEdit($backdrop, $insertImage, $width, $height, $name)
+    {
+        // 实例化图像编辑器
+        $editor = Grafika::createEditor(['Gd']);
+        // 打开背景图
+        $editor->open($backImage, $backdrop);
+        // 打开插入图片
+        $editor->open($addImage, $insertImage);
+        // 调整插入图片尺寸   暂不调整
+//        $editor->resizeExact($avatarImage, '', '');
+        // 图片插入到背景图片上
+        $editor->blend($backImage, $addImage, 'normal', 1.0, 'top-left', $width, $height);
+
+        // 保存图片
+        $editor->save($backImage, storage_path('app/public') . '/words/zip/' . $name);
     }
 
 
@@ -201,29 +330,11 @@ abstract class Base extends Form
         return true;
     }
 
-    /**
-     * author: mtg
-     * time: 2021/1/21   11:21
-     * function description: 配置的模块,即配置的类名
-     * @return string
-     */
-    public function getModule()
-    {
-        $className = str_replace('\\', '/', get_called_class());
 
-        return $this->module() ?? strtolower(basename($className));
-    }
-
-    /**
-     * The data of the form.
-     *
-     *
-     */
     public function data()
     {
 
         $data = [];
-
 
         return $data;
     }

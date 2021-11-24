@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "149a0184fbf6f96e19a269c7ab7fc870",
+    "content-hash": "9928343b8a2363450d8aad9f935f6852",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -1374,6 +1374,52 @@
                 }
             ],
             "time": "2021-10-06T17:43:30+00:00"
+        },
+        {
+            "name": "kosinix/grafika",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/kosinix/grafika.git",
+                "reference": "211f61fc334b8b36616b23e8af7c5727971d96ee"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/kosinix/grafika/zipball/211f61fc334b8b36616b23e8af7c5727971d96ee",
+                "reference": "211f61fc334b8b36616b23e8af7c5727971d96ee",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Grafika\\": "src/Grafika"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT",
+                "GPL-2.0+"
+            ],
+            "authors": [
+                {
+                    "name": "Nico Amarilla",
+                    "homepage": "https://www.kosinix.com"
+                }
+            ],
+            "description": "An image manipulation library for PHP.",
+            "homepage": "http://kosinix.github.io/grafika",
+            "keywords": [
+                "grafika"
+            ],
+            "support": {
+                "issues": "https://github.com/kosinix/grafika/issues",
+                "source": "https://github.com/kosinix/grafika/tree/2.0.8"
+            },
+            "time": "2017-06-20T03:13:49+00:00"
         },
         {
             "name": "laminas/laminas-escaper",
@@ -8249,7 +8295,9 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": [],
+    "stability-flags": {
+        "kosinix/grafika": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
